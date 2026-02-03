@@ -97,16 +97,42 @@ def cruzar(padre1, padre2):
     hijo2 = eliminar_repetidos_hijo(hijo2, padre2)
     return hijo1, hijo2
 
-def mutar(individuo, prob_mut_ind, prob_mut_gen):
+def mutar(individuo, prob_mut_ind, prob_mut_gen, valores_posibles):
     individuo_mutado = individuo.copy()
     if random.random() >= prob_mut_ind:
         return individuo_mutado
-    
+
     for i in range(len(individuo_mutado)):
-        if random.random() < prob_mut_gen:
-            individuo_mutado[i] = None
+        if random.random() < prob_mut_gen and individuo_mutado[i] is not None:
+            tipo_mut = random.choice(["reemplazo", "intercambio"])
             
+            if tipo_mut == "reemplazo":
+                valores_disponibles = [v for v in valores_posibles if v not in individuo_mutado]
+                if valores_disponibles:
+                    nuevo_valor = random.choice(valores_disponibles)
+                    individuo_mutado[i] = nuevo_valor
+                else:
+                    tipo_mut = "intercambio"
+            
+            if tipo_mut == "intercambio":
+                indices_validos = [j for j in range(len(individuo_mutado)) if j != i and individuo_mutado[j] is not None]
+                if indices_validos:
+                    j = random.choice(indices_validos)
+                    individuo_mutado[i], individuo_mutado[j] = individuo_mutado[j], individuo_mutado[i]
     return individuo_mutado
+
+def poda(aptitudes, tam_poblacion):
+    # aptitudes: lista de tuplas (individuo, aptitud)
+    if not aptitudes:
+        return []
+    # Ordenar por aptitud (menor es mejor si es minimización)
+    aptitudes_ordenadas = sorted(aptitudes, key=lambda x: x[1])
+    mejor = aptitudes_ordenadas[0][0]
+    restantes = [ind for ind, _ in aptitudes_ordenadas[1:]]
+    seleccionados = [mejor]
+    if len(restantes) > 0:
+        seleccionados += random.sample(restantes, min(tam_poblacion-1, len(restantes)))
+    return seleccionados
 
 def main():
     num_individuos = 10

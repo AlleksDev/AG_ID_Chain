@@ -26,6 +26,88 @@ def evaluar_individuo(individuo, vals_posiciones, valores_posibles):
             total += masa * peso
     return abs(total)
 
+def evaluar_poblacion(poblacion, vals_posiciones, valores_posibles):
+    aptitudes = []
+    for individuo in poblacion:
+        aptitud = evaluar_individuo(individuo, vals_posiciones, valores_posibles)
+        aptitudes.append((individuo, aptitud))
+    return aptitudes
+
+def generar_parejas(poblacion, prob_cruza):
+    if not poblacion:
+        raise ValueError("La población no puede estar vacía.")
+    
+    parejas = []
+    n = len(poblacion)
+    
+    for i in range(n):
+        for j in range(n):
+            if i!= j and random.random() < prob_cruza:
+                parejas.append((poblacion[i], poblacion[j]))
+    
+    return parejas
+
+def cruzar_segmentos(padre1, padre2, puntos_corte):
+    puntos = [0] + sorted(puntos_corte) + [len(padre1)]
+    hijo1 = []
+    hijo2 = []
+    alternar = True
+    for i in range(len(puntos)-1):
+        ini, fin = puntos[i], puntos[i+1]
+        if alternar:
+            hijo1 += padre1[ini:fin]
+            hijo2 += padre2[ini:fin]
+        else:
+            hijo1 += padre2[ini:fin]
+            hijo2 += padre1[ini:fin]
+        alternar = not alternar
+    return hijo1, hijo2
+
+def eliminar_repetidos_hijo(hijo, padre):
+    hijo_limpio = hijo.copy()
+    padre2 = padre[1] if isinstance(padre, tuple) else None
+    if padre2 is not None:
+        padre_unicos = list(set(list(padre[0]) + list(padre2)))
+    else:
+        padre_unicos = list(set(padre))
+    valores_hijo = [g for g in hijo_limpio if g is not None]
+    padre_menos_hijo = [v for v in padre_unicos if v not in valores_hijo]
+    vistos = set()
+    for i, gene in enumerate(hijo_limpio):
+        if gene is not None:
+            if gene in vistos:
+                if padre_menos_hijo:
+                    nuevo = random.choice(padre_menos_hijo)
+                    hijo_limpio[i] = nuevo
+                    padre_menos_hijo.remove(nuevo)
+                else:
+                    hijo_limpio[i] = None
+            else:
+                vistos.add(gene)
+    return hijo_limpio
+
+def cruzar(padre1, padre2):
+    longitud = len(padre1)
+    n_puntos = random.randint(1, longitud - 1)
+    puntos = random.sample(range(1, longitud-2), n_puntos)
+    puntos.sort()
+    
+    hijo1, hijo2 = cruzar_segmentos(padre1, padre2, puntos)
+    hijo1 = eliminar_repetidos_hijo(hijo1, padre1)
+    hijo2 = eliminar_repetidos_hijo(hijo2, padre2)
+    return hijo1, hijo2
+
+def mutar(individuo, prob_mut_ind, prob_mut_gen):
+    individuo_mutado = individuo.copy()
+    if random.random() >= prob_mut_ind:
+        return individuo_mutado
+    
+    for i in range(len(individuo_mutado)):
+        if random.random() < prob_mut_gen:
+            individuo_mutado[i] = None
+            
+    return individuo_mutado
+
 def main():
     num_individuos = 10
     valores_posibles = {
@@ -46,7 +128,7 @@ def main():
     for idx, individuo in enumerate(poblacion):
         print(f"Individuo {idx + 1}: {individuo}")
     
-    
+    aptitudes = evaluar_poblacion(poblacion, vals_posiciones, valores_posibles)
 
 if __name__ == "__main__":
     main()
